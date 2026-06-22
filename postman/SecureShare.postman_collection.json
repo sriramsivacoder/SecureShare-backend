@@ -1,0 +1,286 @@
+{
+  "info": {
+    "_postman_id": "secureshare-collection-v1",
+    "name": "SecureShare API",
+    "description": "Production-grade secure file sharing platform API — AES-256-GCM encrypted files, JWT auth, Cloudflare R2 storage.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "http://localhost:5000/api" },
+    { "key": "ACCESS_TOKEN", "value": "" },
+    { "key": "SHARE_TOKEN", "value": "" },
+    { "key": "FILE_ID", "value": "" },
+    { "key": "SHARE_ID", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"Jane Doe\",\"email\":\"jane@example.com\",\"password\":\"SecurePass123\"}"
+            }
+          }
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/auth/verify-email",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"token\":\"<64-char-hex-token>\"}" }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const json = pm.response.json();",
+                "if (json.accessToken) pm.collectionVariables.set('ACCESS_TOKEN', json.accessToken);"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"jane@example.com\",\"password\":\"SecurePass123\"}"
+            }
+          }
+        },
+        {
+          "name": "Get Me",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/auth/me",
+            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }]
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const json = pm.response.json();",
+                "if (json.accessToken) pm.collectionVariables.set('ACCESS_TOKEN', json.accessToken);"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/auth/refresh"
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/auth/forgot-password",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"jane@example.com\"}" }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/auth/reset-password",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"token\":\"<64-char-hex>\",\"password\":\"NewSecurePass123\"}" }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/auth/logout",
+            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Files",
+      "item": [
+        {
+          "name": "Get Stats",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/files/stats",
+            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }]
+          }
+        },
+        {
+          "name": "List Files",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/files",
+            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }]
+          }
+        },
+        {
+          "name": "Upload File",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const json = pm.response.json();",
+                "if (json._id) pm.collectionVariables.set('FILE_ID', json._id);"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/files/upload",
+            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "file", "type": "file", "src": "" }]
+            }
+          }
+        },
+        {
+          "name": "Download Own File",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/files/{{FILE_ID}}/download",
+            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }]
+          }
+        },
+        {
+          "name": "Delete File",
+          "request": {
+            "method": "DELETE",
+            "url": "{{BASE_URL}}/files/{{FILE_ID}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Shares",
+      "item": [
+        {
+          "name": "Create Share",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const json = pm.response.json();",
+                "if (json.token) pm.collectionVariables.set('SHARE_TOKEN', json.token);",
+                "if (json.share?._id) pm.collectionVariables.set('SHARE_ID', json.share._id);"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/shares",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"fileId\":\"{{FILE_ID}}\",\"password\":null,\"maxDownloads\":5}"
+            }
+          }
+        },
+        {
+          "name": "List My Shares",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/shares",
+            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }]
+          }
+        },
+        {
+          "name": "Get Share Info (public)",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/shares/link/{{SHARE_TOKEN}}"
+          }
+        },
+        {
+          "name": "Verify Share Password (public)",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/shares/link/{{SHARE_TOKEN}}/access",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"password\":\"your-share-password\"}" }
+          }
+        },
+        {
+          "name": "Download Shared File (public)",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/shares/link/{{SHARE_TOKEN}}/download",
+            "header": [{ "key": "Authorization", "value": "Bearer <share-access-token>" }]
+          }
+        },
+        {
+          "name": "Revoke Share",
+          "request": {
+            "method": "DELETE",
+            "url": "{{BASE_URL}}/shares/{{SHARE_ID}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "url": "{{BASE_URL}}/users/profile",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"name\":\"Jane Smith\"}" }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PATCH",
+            "url": "{{BASE_URL}}/users/change-password",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{ACCESS_TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"currentPassword\":\"SecurePass123\",\"newPassword\":\"NewSecurePass123\"}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/health"
+          }
+        }
+      ]
+    }
+  ]
+}
