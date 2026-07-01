@@ -28,7 +28,7 @@ app.use(
     credentials: true
   })
 );
-
+app.options("*", cors());
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: false }));
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
